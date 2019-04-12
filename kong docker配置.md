@@ -10,7 +10,12 @@ Postgres + Kong
 
 ## 安装及配置
 
-### postgre
+### network配置
+```
+docker network create kong-net
+```
+
+### postgres
 
 ```
 docker run -d --name kong-database --network kong-net -p 5432:5432 -e "POSTGRES_USER=kong" -e "POSTGRES_DB=kong" postgres:9.6
@@ -33,4 +38,31 @@ ssl_cert =  /etc/kong/ssl.crt
 ssl_cert_key =  /etc/kong/ssl.key
 ```
 这里ssl.crt和ssl.key是我们申请到的证书和key文件，kong.conf，ssl.crt和ssl.key都放在宿主机上，比方都再放在宿主机~/kong目录下，然后可以通过“-v ~/kong:/etc/kong”挂载到kong容器内即可。Kong默认的https端口是8443，对外暴露时也可以修改成https默认的443。
+
+#### service 
+```
+curl -i -X POST http://localhost:8001/services -d "name=服务名称" -d "url=后台实际服务地址"
+```
+#### route
+```
+curl -i -X POST --url http://localhost:8001/routes/ -d 'protocols[]=https' -d 'paths[]=/relay2api' -d 'service.id=上边配置的服务ID'
+```
+#### API Key
+启动key-auth
+```
+curl -i -X POST --url http://localhost:8001/services/前边配置的service名称/plugins/ --data 'name=key-auth’
+```
+配置用户
+```
+curl -X POST http://localhost:8001/consumers/ --data “username=***" --data “custom_id=***”
+```
+取得用户的apiKey
+```
+curl -X POST http://localhost:8001/consumers/用户username/key-auth -d ‘'
+```
+
+举例：
+```
+curl  --data '{"method":"get_accounts","params":{"addresses":["0xd65a23388d5d6f0b1ec52a7fc07a291c132d57ed"], "tokens":[],"allTokens":true},"id":"aaa","jsonrpc":"2.0"}' -H "Content-Type: application/json" -H "apikey:***" -X POST https://lightcone.io/***
+```
 
